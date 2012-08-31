@@ -30,6 +30,8 @@ describe User do
 
       it { should respond_to(:admin) }
       it { should respond_to(:authenticate) }
+      it { should respond_to(:microposts) }
+      it { should respond_to(:feed) }
 
       it { should be_valid }
       it { should_not be_admin }
@@ -125,5 +127,40 @@ describe User do
     its(:remember_token) { should_not be_blank }
   end
 
-end
+  describe "micropost associations" do #20
+
+    before { @user.save }
+    let!(:older_micropost) do  #21
+      FactoryGirl.create(:micropost, user: @user, created_at: 1.day.ago)
+    end #21
+    let!(:newer_micropost) do #22
+      FactoryGirl.create(:micropost, user: @user, created_at: 1.hour.ago)
+    end #22
+
+    it "should have the right microposts in the right order" do #23
+      @user.microposts.should == [newer_micropost, older_micropost]
+    end #23
+
+    it "should destroy associated microposts" do #24
+      microposts = @user.microposts
+      @user.destroy
+      microposts.each do |micropost| #25
+        Micropost.find_by_id(micropost.id).should be_nil
+      end #25
+    end #24
+
+    describe "status" do #26
+      let(:unfollowed_post) do #27
+        FactoryGirl.create(:micropost, user: FactoryGirl.create(:user))
+      end #27
+
+      its(:feed) { should include(newer_micropost) }
+      its(:feed) { should include(older_micropost) }
+      its(:feed) { should_not include(unfollowed_post) }
+    end #26
+
+  end #20
+
+
+end #1
 
